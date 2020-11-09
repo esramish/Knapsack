@@ -77,12 +77,12 @@ class Solver:
                 best_value = temp_value
 
                 best_choice = np.copy(chosen_arr)
-                print(best_value)
-                print(temp_weight)
-                print(best_choice)
+                # print(best_value)
+                # print(temp_weight)
+                # print(best_choice)
            # print(chosen_arr)
            
-        print(best_choice)
+        # print(best_choice)
         #print(count)
         return [item[0] for item, bit in zip(items, best_choice) if bit]
 
