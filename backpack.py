@@ -48,8 +48,9 @@ class Solver:
     def __solveBruteForce(self):
         # TODO
         best_value = -1
-
+        count = 0
         capacity = self.problems[0][0]
+       # print(capacity)
         # for i in range(len(self.problems[0][1])):
 
         num_items = len(self.problems[0][1])
@@ -66,14 +67,23 @@ class Solver:
             chosen_arr[j] = 1
 
             for k in range(0, num_items):
+                
                 # Which problem, list of items, which item, weight
                 if chosen_arr[k] == 1:
                     temp_weight += items[k][2]
                     temp_value += items[k][1]
             if temp_value > best_value and temp_weight <= capacity:
+                count+=1
                 best_value = temp_value
 
-            best_choice = chosen_arr
+                best_choice = np.copy(chosen_arr)
+                print(best_value)
+                print(temp_weight)
+                print(best_choice)
+           # print(chosen_arr)
+           
+        print(best_choice)
+        #print(count)
         return [item[0] for item, bit in zip(items, best_choice) if bit]
 
 
