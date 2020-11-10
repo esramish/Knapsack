@@ -127,28 +127,23 @@ class Solver:
         stack.push(([], 0, sum(item[1] for item in items), sum(item[2] for item in items)))
         
         while not stack.is_empty():
-            # print(stack)
             removed_items_indices, next_index, curr_value, curr_weight = stack.pop()
             next_item = items[next_index]
             removed_indices_with_next_item = removed_items_indices + [next_index]
             next_weight = curr_weight - next_item[2]
             next_value = curr_value - next_item[1]
-
-            if next_value <= best_value:
-                continue
             
             still_overweight = next_weight > capacity
-            
-            if next_index <= num_items - 2:
-                if still_overweight:
-                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
-                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
+            next_is_best_value = next_value > best_value
 
-            if not still_overweight:
+            if not still_overweight and next_is_best_value:
                 best_value = next_value
                 best_choice_complement = removed_indices_with_next_item
-                # print(best_value)
-                # print(list(i for i in range(num_items) if i not in best_choice_complement))
+            
+            if next_index <= num_items - 2:
+                if still_overweight and next_is_best_value: # here's the bounding; not interested in the subtree resulting from removing next_item if doing so put us below the weight threshold or below the best value so far, since removing more won't help in either case
+                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
+                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
                 
         return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
