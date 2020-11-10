@@ -1,5 +1,5 @@
 import numpy as np
-
+from Stack import Stack
 
 class Solver:
 
@@ -7,7 +7,8 @@ class Solver:
 
         # Constant dict that maps solving method parameter name to the corresponding function name
         self.SOLVER_METHODS = {
-            "bruteForce": self.__solveBruteForce
+            "bruteForce": self.__solveBruteForce,
+            "backtrack": self.__solveBacktrack
         }
 
     def loadProblemFromFile(self, filename):
@@ -48,7 +49,7 @@ class Solver:
     def __solveBruteForce(self):
         # TODO
         best_value = -1
-        count = 0
+        
         capacity = self.problems[0][0]
        # print(capacity)
         # for i in range(len(self.problems[0][1])):
@@ -57,6 +58,7 @@ class Solver:
         items = self.problems[0][1]
         chosen_arr = np.zeros(num_items)
         for i in range(0, 2**num_items):
+            
             j = num_items - 1
             temp_weight = 0
             temp_value = 0
@@ -73,7 +75,6 @@ class Solver:
                     temp_weight += items[k][2]
                     temp_value += items[k][1]
             if temp_value > best_value and temp_weight <= capacity:
-                count+=1
                 best_value = temp_value
 
                 best_choice = np.copy(chosen_arr)
@@ -83,8 +84,36 @@ class Solver:
            # print(chosen_arr)
            
         # print(best_choice)
-        #print(count)
+        
         return [item[0] for item, bit in zip(items, best_choice) if bit]
+    
+    def __solveBacktrack(self):
+        best_value = -1
+        best_choice = []
+
+        capacity = self.problems[0][0]
+        items = self.problems[0][1]
+        num_items = len(items)
+
+        stack = Stack() # Contains (curr_pack_indices: [], next_index, curr_value, curr_weight) tuples
+        stack.push(([], 0, 0, 0))
+        
+        while not stack.is_empty():
+            curr_pack_indices, next_index, curr_value, curr_weight = stack.pop()
+            next_item = items[next_index]
+            pack_indices_with_next_item = curr_pack_indices + [next_index]
+            next_weight = curr_weight + next_item[2]
+            next_value = curr_value + next_item[1]
+            if next_weight <= capacity and next_value > best_value:
+                best_value = next_value
+                best_choice = pack_indices_with_next_item
+            if next_weight < capacity and next_index <= num_items - 2:
+                stack.push((pack_indices_with_next_item, next_index + 1, next_value, next_weight))
+            if curr_weight < capacity and next_index <= num_items - 2:
+                stack.push((curr_pack_indices, next_index + 1, curr_value, curr_weight))
+        
+        return [items[i][0] for i in best_choice]
+
 
 
 def solveKnapsackFile(filename, method="bruteForce"):
