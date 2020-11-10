@@ -175,6 +175,10 @@ class Solver:
         items_a, items_b = np.array_split(items, 2)
         subsets_a = self.findSubsets(items_a)
         subsets_b = self.findSubsets(items_b)
+       
+        # sort_b = list(subsets_b).sort(key = lambda x: x[0][2])
+        # subsets_b = np.array(sort_b)
+        # print(sort_b)
         best_set = []
         for sub_a in subsets_a:
 
@@ -192,6 +196,8 @@ class Solver:
                 if a_values + b_values > sub_best_values and a_weight + b_weight <= capacity:
                     sub_best_values = a_values + b_values
                     good_set = np.concatenate((sub_a, sub_b))
+                # elif a_weight + b_weight > capacity:
+                #     break
             if self.sumValues(good_set) > self.sumValues(best_set):
                 best_set = np.copy(good_set)
         print(count)
