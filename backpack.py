@@ -1,5 +1,7 @@
 import numpy as np
 from Stack import Stack
+from itertools import combinations
+
 
 class Solver:
 
@@ -9,7 +11,8 @@ class Solver:
         self.SOLVER_METHODS = {
             "bruteForce": self.__solveBruteForce,
             "backtrack": self.__solveBacktrack,
-            "branchAndBound": self.__solveBranchAndBound
+            "branchAndBound": self.__solveBranchAndBound,
+            "meetInMiddle": self.__solveMiddle
         }
 
     def loadProblemFromFile(self, filename):
@@ -103,8 +106,9 @@ class Solver:
         best_value = -1
         best_choice = []
 
-        # Create a stack of "knapsack situations." Push to it an empty knapsack where all the items starting with index 0 are still fair game for adding
-        stack = Stack() # Contains (curr_pack_indices: [], next_index, curr_value, curr_weight) tuples
+        # Create a stack of "knapsack situations," each of which is a (curr_pack_indices: [], next_index, curr_value, curr_weight) tuple.
+        # Push to it an empty knapsack where all the items starting with index 0 are still fair game for adding
+        stack = Stack()
         stack.push(([], 0, 0, 0))
         
         # Iterate until we've addressed all hypothetical knapsack situations
@@ -131,10 +135,12 @@ class Solver:
                 
                 # Here's the backtracking!!! Only push the situation with this item added if it doesn't put the knapsack over capacity
                 if next_weight < capacity:
-                    stack.push((pack_indices_with_next_item, next_index + 1, next_value, next_weight))
+                    stack.push((pack_indices_with_next_item,
+                                next_index + 1, next_value, next_weight))
                 
                 # Regardless of that next item's weight, push the situation in which it wasn't added
-                stack.push((curr_pack_indices, next_index + 1, curr_value, curr_weight))
+                stack.push((curr_pack_indices, next_index + 1, 
+                            curr_value, curr_weight))
         
         # Convert list of chosen item indices to a list of chosen item names; return it
         return [items[i][0] for i in best_choice]
@@ -150,9 +156,11 @@ class Solver:
         best_value = -1
         best_choice_complement = [] # That is, the indices of the items that are NOT in the knapsack in the best case so far
 
-        # Create a stack of "knapsack situations." Push to it a full knapsack where all the items starting with index 0 are still fair game for removing
-        stack = Stack() # Contains (removed_items_indices: [], next_index, curr_value, curr_weight) tuples
-        stack.push(([], 0, sum(item[1] for item in items), sum(item[2] for item in items)))
+        # Create a stack of "knapsack situations," each of which is a (removed_items_indices: [], next_index, curr_value, curr_weight) tuple. 
+        # Push to it a full knapsack where all the items starting with index 0 are still fair game for removing
+        stack = Stack()
+        stack.push(([], 0, sum(item[1] for item in items), 
+                    sum(item[2] for item in items)))
         
         # Iterate until we've addressed all hypothetical knapsack situations
         while not stack.is_empty():
@@ -164,7 +172,8 @@ class Solver:
             next_item = items[next_index]
             
             # The variables representing the situation in which this next item is removed
-            removed_indices_with_next_item = removed_items_indices + [next_index]
+            removed_indices_with_next_item = removed_items_indices + \
+                [next_index]
             next_weight = curr_weight - next_item[2]
             next_value = curr_value - next_item[1]
             still_overweight = next_weight > capacity
@@ -182,14 +191,73 @@ class Solver:
                 # if doing so puts us below the weight threshold or below the best value so far, 
                 # since removing more items in addition to that one won't help in either of those cases.
                 if still_overweight and next_is_best_value: 
-                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
+                    stack.push((removed_indices_with_next_item, 
+                                next_index + 1, next_value, next_weight))
                 
                 # Regardless of that next item's weight and value, push the situation in which it wasn't removed
-                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
+                stack.push((removed_items_indices, next_index + 1, 
+                            curr_value, curr_weight))
         
         # Convert list of *non-chosen* item indices to a list of *chosen* item names; return it
         return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
+    def __solveMiddle(self, problem_index):
+        #best_value = -1
+        #best_choice_complement = []
+        count = 0
+        capacity = self.problems[problem_index][0]
+        items = self.problems[problem_index][1]
+        #num_items = len(items)
+        items_a, items_b = np.array_split(items, 2)
+        subsets_a = self.findSubsets(items_a)
+        subsets_b = self.findSubsets(items_b)
+       
+        # sort_b = list(subsets_b).sort(key = lambda x: x[0][2])
+        # subsets_b = np.array(sort_b)
+        # print(sort_b)
+        best_set = []
+        for sub_a in subsets_a:
+
+           # print(sub_a)
+            a_weight = self.sumWeights(sub_a)
+            a_values = self.sumValues(sub_a)
+            sub_best_values = -1
+            good_set = []
+            for sub_b in subsets_b:
+                count += 1
+
+              #  print(sub_b)
+                b_weight = self.sumWeights(sub_b)
+                b_values = self.sumValues(sub_b)
+                if a_values + b_values > sub_best_values and a_weight + b_weight <= capacity:
+                    sub_best_values = a_values + b_values
+                    good_set = np.concatenate((sub_a, sub_b))
+                # elif a_weight + b_weight > capacity:
+                #     break
+            if self.sumValues(good_set) > self.sumValues(best_set):
+                best_set = np.copy(good_set)
+        print(count)
+        return [best_set[i][0] for i in range(len(best_set))]
+
+    def findSubsets(self, items):
+        sub_list = []
+        for i in range(0, len(items)):
+            for item in combinations(items, i):
+                sub_list.append(item)
+        return np.array(sub_list)[1:]
+
+    def sumWeights(self, items):
+        sum = 0
+        for i in range(len(items)):
+
+            sum += int(items[i][2])
+        return sum
+
+    def sumValues(self, items):
+        sum = 0
+        for i in range(len(items)):
+            sum += int(items[i][1])
+        return sum
 
 def solveKnapsackFile(filename, method="backtrack"):
     '''A wrapper function for solving the problems in a file; load the file into a Solver instance and get the solutions using the specified method.'''
