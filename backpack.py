@@ -13,6 +13,7 @@ class Solver:
         }
 
     def loadProblemFromFile(self, filename):
+        
         # List of (max_weight, [items]) tuples. Each item is a tuple of (name, value, weight)
         self.problems = []
 
@@ -41,115 +42,157 @@ class Solver:
 
         # Confirm that method argument is valid
         if method not in self.SOLVER_METHODS:
-            raise ValueError(
-                f"Invalid method. Valid method names: {', '.join(self.SOLVER_METHODS.keys())}")
+            raise ValueError(f"Invalid method. Valid method names: {', '.join(self.SOLVER_METHODS.keys())}")
 
-        # Delegate to the function that uses the specified solving method
-        return self.SOLVER_METHODS[method]()
+        # Delegate to the function that uses the specified solving method; return a list of solutions for the whole file
+        solutions = []
+        for i in range(len(self.problems)):
+            problem_instance_solution = self.SOLVER_METHODS[method](i)
+            solutions.append(sorted(problem_instance_solution))
+        return solutions
 
-    def __solveBruteForce(self):
-        # TODO
-        best_value = -1
+    def __solveBruteForce(self, problem_index):
         
-        capacity = self.problems[0][0]
-       # print(capacity)
-        # for i in range(len(self.problems[0][1])):
+        # Constants for this problem instance
+        capacity = self.problems[problem_index][0]
+        items = self.problems[problem_index][1]
+        num_items = len(items)
 
-        num_items = len(self.problems[0][1])
-        items = self.problems[0][1]
+        # Variable to track of the highest value so far
+        best_value = -1
+
+        # A numpy array that represents a binary number that increments each time through the loop
         chosen_arr = np.zeros(num_items)
+
+        # Loop 2^n times
         for i in range(0, 2**num_items):
             
+            # Reset variables that will be used below
             j = num_items - 1
             temp_weight = 0
             temp_value = 0
             
+            # Increment the binary number that chosen_arr represents
             while (chosen_arr[j] != 0 and j >= 0):
                 chosen_arr[j] = 0
                 j -= 1
             chosen_arr[j] = 1
 
+            # Add up the values and weights of the chosen items
             for k in range(0, num_items):
-                
-                # Which problem, list of items, which item, weight
                 if chosen_arr[k] == 1:
-                    temp_weight += items[k][2]
-                    temp_value += items[k][1]
+                    temp_weight += items[k][2] # Indices meaning: which item, item weight
+                    temp_value += items[k][1] # Indices meaning: which item, item value
+            
+            # If this is the best legal value so far, update variables accordingly
             if temp_value > best_value and temp_weight <= capacity:
                 best_value = temp_value
-
                 best_choice = np.copy(chosen_arr)
-                # print(best_value)
-                # print(temp_weight)
-                # print(best_choice)
-           # print(chosen_arr)
-           
-        # print(best_choice)
         
+        # Convert binary list to a list of chosen item names; return it
         return [item[0] for item, bit in zip(items, best_choice) if bit]
     
-    def __solveBacktrack(self):
+    def __solveBacktrack(self, problem_index):
+        
+        # Constants for this problem instance
+        capacity = self.problems[problem_index][0]
+        items = self.problems[problem_index][1]
+        num_items = len(items)
+        
+        # Variables to track the highest value so far and the corresponding items
         best_value = -1
         best_choice = []
 
-        capacity = self.problems[0][0]
-        items = self.problems[0][1]
-        num_items = len(items)
-
+        # Create a stack of "knapsack situations." Push to it an empty knapsack where all the items starting with index 0 are still fair game for adding
         stack = Stack() # Contains (curr_pack_indices: [], next_index, curr_value, curr_weight) tuples
         stack.push(([], 0, 0, 0))
         
+        # Iterate until we've addressed all hypothetical knapsack situations
         while not stack.is_empty():
+
+            # Pop a knapsack situation 
             curr_pack_indices, next_index, curr_value, curr_weight = stack.pop()
-            next_item = items[next_index]
+            
+            # The next item to cause situation branching by being added or not
+            next_item = items[next_index] 
+            
+            # The variables representing the situation in which this next item is added
             pack_indices_with_next_item = curr_pack_indices + [next_index]
             next_weight = curr_weight + next_item[2]
             next_value = curr_value + next_item[1]
+
+            # If this is the best legal value so far, update variables accordingly
             if next_weight <= capacity and next_value > best_value:
                 best_value = next_value
                 best_choice = pack_indices_with_next_item
+            
+            # If there are still more items remaining to add or not add, push those situations to the situation stack
             if next_index <= num_items - 2:
+                
+                # Here's the backtracking!!! Only push the situation with this item added if it doesn't put the knapsack over capacity
                 if next_weight < capacity:
                     stack.push((pack_indices_with_next_item, next_index + 1, next_value, next_weight))
+                
+                # Regardless of that next item's weight, push the situation in which it wasn't added
                 stack.push((curr_pack_indices, next_index + 1, curr_value, curr_weight))
         
+        # Convert list of chosen item indices to a list of chosen item names; return it
         return [items[i][0] for i in best_choice]
 
-    def __solveBranchAndBound(self):
-        best_value = -1
-        best_choice_complement = []
-
-        capacity = self.problems[0][0]
-        items = self.problems[0][1]
+    def __solveBranchAndBound(self, problem_index):
+        
+        # Constants for this problem instance
+        capacity = self.problems[problem_index][0]
+        items = self.problems[problem_index][1]
         num_items = len(items)
 
+        # Variables to track the highest value so far and the corresponding items
+        best_value = -1
+        best_choice_complement = [] # That is, the indices of the items that are NOT in the knapsack in the best case so far
+
+        # Create a stack of "knapsack situations." Push to it a full knapsack where all the items starting with index 0 are still fair game for removing
         stack = Stack() # Contains (removed_items_indices: [], next_index, curr_value, curr_weight) tuples
         stack.push(([], 0, sum(item[1] for item in items), sum(item[2] for item in items)))
         
+        # Iterate until we've addressed all hypothetical knapsack situations
         while not stack.is_empty():
+            
+            # Pop a knapsack situation
             removed_items_indices, next_index, curr_value, curr_weight = stack.pop()
+            
+            # The next item to cause situation branching by being removed or not
             next_item = items[next_index]
+            
+            # The variables representing the situation in which this next item is removed
             removed_indices_with_next_item = removed_items_indices + [next_index]
             next_weight = curr_weight - next_item[2]
             next_value = curr_value - next_item[1]
-            
             still_overweight = next_weight > capacity
             next_is_best_value = next_value > best_value
 
+            # If this is the best legal value so far, update variables accordingly
             if not still_overweight and next_is_best_value:
                 best_value = next_value
                 best_choice_complement = removed_indices_with_next_item
             
+            # If there are still more items remaining to remove or not remove, push those situations to the situation stack
             if next_index <= num_items - 2:
-                if still_overweight and next_is_best_value: # here's the bounding; not interested in the subtree resulting from removing next_item if doing so put us below the weight threshold or below the best value so far, since removing more won't help in either case
-                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
-                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
                 
+                # Here's the bounding!!! Not interested in the subtree resulting from removing next_item 
+                # if doing so puts us below the weight threshold or below the best value so far, 
+                # since removing more items in addition to that one won't help in either of those cases.
+                if still_overweight and next_is_best_value: 
+                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
+                
+                # Regardless of that next item's weight and value, push the situation in which it wasn't removed
+                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
+        
+        # Convert list of *non-chosen* item indices to a list of *chosen* item names; return it
         return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
 
-
-def solveKnapsackFile(filename, method="bruteForce"):
+def solveKnapsackFile(filename, method="backtrack"):
+    '''A wrapper function for solving the problems in a file; load the file into a Solver instance and get the solutions using the specified method.'''
     solver = Solver()
     solver.loadProblemFromFile(filename)
     return solver.getSolutions(method)
