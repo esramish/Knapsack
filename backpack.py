@@ -8,7 +8,8 @@ class Solver:
         # Constant dict that maps solving method parameter name to the corresponding function name
         self.SOLVER_METHODS = {
             "bruteForce": self.__solveBruteForce,
-            "backtrack": self.__solveBacktrack
+            "backtrack": self.__solveBacktrack,
+            "branchAndBound": self.__solveBranchAndBound
         }
 
     def loadProblemFromFile(self, filename):
@@ -41,7 +42,7 @@ class Solver:
         # Confirm that method argument is valid
         if method not in self.SOLVER_METHODS:
             raise ValueError(
-                f"Invalid method. Valid method names: {self.SOLVER_METHODS.keys}")
+                f"Invalid method. Valid method names: {', '.join(self.SOLVER_METHODS.keys())}")
 
         # Delegate to the function that uses the specified solving method
         return self.SOLVER_METHODS[method]()
@@ -107,12 +108,49 @@ class Solver:
             if next_weight <= capacity and next_value > best_value:
                 best_value = next_value
                 best_choice = pack_indices_with_next_item
-            if next_weight < capacity and next_index <= num_items - 2:
-                stack.push((pack_indices_with_next_item, next_index + 1, next_value, next_weight))
-            if curr_weight < capacity and next_index <= num_items - 2:
+            if next_index <= num_items - 2:
+                if next_weight < capacity:
+                    stack.push((pack_indices_with_next_item, next_index + 1, next_value, next_weight))
                 stack.push((curr_pack_indices, next_index + 1, curr_value, curr_weight))
         
         return [items[i][0] for i in best_choice]
+
+    def __solveBranchAndBound(self):
+        best_value = -1
+        best_choice_complement = []
+
+        capacity = self.problems[0][0]
+        items = self.problems[0][1]
+        num_items = len(items)
+
+        stack = Stack() # Contains (removed_items_indices: [], next_index, curr_value, curr_weight) tuples
+        stack.push(([], 0, sum(item[1] for item in items), sum(item[2] for item in items)))
+        
+        while not stack.is_empty():
+            # print(stack)
+            removed_items_indices, next_index, curr_value, curr_weight = stack.pop()
+            next_item = items[next_index]
+            removed_indices_with_next_item = removed_items_indices + [next_index]
+            next_weight = curr_weight - next_item[2]
+            next_value = curr_value - next_item[1]
+
+            if next_value <= best_value:
+                continue
+            
+            still_overweight = next_weight > capacity
+            
+            if next_index <= num_items - 2:
+                if still_overweight:
+                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
+                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
+
+            if not still_overweight:
+                best_value = next_value
+                best_choice_complement = removed_indices_with_next_item
+                # print(best_value)
+                # print(list(i for i in range(num_items) if i not in best_choice_complement))
+                
+        return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
 
 
