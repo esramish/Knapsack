@@ -1,5 +1,8 @@
 import numpy as np
-from Stack import Stack
+#from Stack import Stack
+from datastructures.Stack import Stack
+from itertools import combinations
+
 
 class Solver:
 
@@ -9,7 +12,8 @@ class Solver:
         self.SOLVER_METHODS = {
             "bruteForce": self.__solveBruteForce,
             "backtrack": self.__solveBacktrack,
-            "branchAndBound": self.__solveBranchAndBound
+            "branchAndBound": self.__solveBranchAndBound,
+            "meetInMiddle": self.__solveMiddle
         }
 
     def loadProblemFromFile(self, filename):
@@ -49,8 +53,9 @@ class Solver:
 
     def __solveBruteForce(self):
         # TODO
+
         best_value = -1
-        
+
         capacity = self.problems[0][0]
        # print(capacity)
         # for i in range(len(self.problems[0][1])):
@@ -59,18 +64,18 @@ class Solver:
         items = self.problems[0][1]
         chosen_arr = np.zeros(num_items)
         for i in range(0, 2**num_items):
-            
+
             j = num_items - 1
             temp_weight = 0
             temp_value = 0
-            
+
             while (chosen_arr[j] != 0 and j >= 0):
                 chosen_arr[j] = 0
                 j -= 1
             chosen_arr[j] = 1
 
             for k in range(0, num_items):
-                
+
                 # Which problem, list of items, which item, weight
                 if chosen_arr[k] == 1:
                     temp_weight += items[k][2]
@@ -83,11 +88,11 @@ class Solver:
                 # print(temp_weight)
                 # print(best_choice)
            # print(chosen_arr)
-           
+
         # print(best_choice)
-        
+
         return [item[0] for item, bit in zip(items, best_choice) if bit]
-    
+
     def __solveBacktrack(self):
         best_value = -1
         best_choice = []
@@ -96,9 +101,10 @@ class Solver:
         items = self.problems[0][1]
         num_items = len(items)
 
-        stack = Stack() # Contains (curr_pack_indices: [], next_index, curr_value, curr_weight) tuples
+        # Contains (curr_pack_indices: [], next_index, curr_value, curr_weight) tuples
+        stack = Stack()
         stack.push(([], 0, 0, 0))
-        
+
         while not stack.is_empty():
             curr_pack_indices, next_index, curr_value, curr_weight = stack.pop()
             next_item = items[next_index]
@@ -110,9 +116,11 @@ class Solver:
                 best_choice = pack_indices_with_next_item
             if next_index <= num_items - 2:
                 if next_weight < capacity:
-                    stack.push((pack_indices_with_next_item, next_index + 1, next_value, next_weight))
-                stack.push((curr_pack_indices, next_index + 1, curr_value, curr_weight))
-        
+                    stack.push((pack_indices_with_next_item,
+                                next_index + 1, next_value, next_weight))
+                stack.push((curr_pack_indices, next_index +
+                            1, curr_value, curr_weight))
+
         return [items[i][0] for i in best_choice]
 
     def __solveBranchAndBound(self):
@@ -123,35 +131,91 @@ class Solver:
         items = self.problems[0][1]
         num_items = len(items)
 
-        stack = Stack() # Contains (removed_items_indices: [], next_index, curr_value, curr_weight) tuples
-        stack.push(([], 0, sum(item[1] for item in items), sum(item[2] for item in items)))
-        
+        # Contains (removed_items_indices: [], next_index, curr_value, curr_weight) tuples
+        stack = Stack()
+        stack.push(([], 0, sum(item[1]
+                               for item in items), sum(item[2] for item in items)))
+
         while not stack.is_empty():
             # print(stack)
             removed_items_indices, next_index, curr_value, curr_weight = stack.pop()
             next_item = items[next_index]
-            removed_indices_with_next_item = removed_items_indices + [next_index]
+            removed_indices_with_next_item = removed_items_indices + \
+                [next_index]
             next_weight = curr_weight - next_item[2]
             next_value = curr_value - next_item[1]
 
             if next_value <= best_value:
                 continue
-            
+
             still_overweight = next_weight > capacity
-            
+
             if next_index <= num_items - 2:
                 if still_overweight:
-                    stack.push((removed_indices_with_next_item, next_index + 1, next_value, next_weight))
-                stack.push((removed_items_indices, next_index + 1, curr_value, curr_weight))
+                    stack.push((removed_indices_with_next_item,
+                                next_index + 1, next_value, next_weight))
+                stack.push((removed_items_indices, next_index +
+                            1, curr_value, curr_weight))
 
             if not still_overweight:
                 best_value = next_value
                 best_choice_complement = removed_indices_with_next_item
                 # print(best_value)
                 # print(list(i for i in range(num_items) if i not in best_choice_complement))
-                
+
         return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
+    def __solveMiddle(self):
+        #best_value = -1
+        #best_choice_complement = []
+        count = 0
+        capacity = self.problems[0][0]
+        items = self.problems[0][1]
+        #num_items = len(items)
+        items_a, items_b = np.array_split(items, 2)
+        subsets_a = self.findSubsets(items_a)
+        subsets_b = self.findSubsets(items_b)
+        best_set = []
+        for sub_a in subsets_a:
+
+           # print(sub_a)
+            a_weight = self.sumWeights(sub_a)
+            a_values = self.sumValues(sub_a)
+            sub_best_values = -1
+            good_set = []
+            for sub_b in subsets_b:
+                count += 1
+
+              #  print(sub_b)
+                b_weight = self.sumWeights(sub_b)
+                b_values = self.sumValues(sub_b)
+                if a_values + b_values > sub_best_values and a_weight + b_weight <= capacity:
+                    sub_best_values = a_values + b_values
+                    good_set = np.concatenate((sub_a, sub_b))
+            if self.sumValues(good_set) > self.sumValues(best_set):
+                best_set = np.copy(good_set)
+        print(count)
+        return [best_set[i][0] for i in range(len(best_set))]
+
+    def findSubsets(self, items):
+        sub_list = []
+        for i in range(0, len(items)):
+            for item in combinations(items, i):
+                sub_list.append(item)
+        return np.array(sub_list)[1:]
+
+    def sumWeights(self, items):
+        sum = 0
+        for i in range(len(items)):
+
+            sum += int(items[i][2])
+        return sum
+
+    def sumValues(self, items):
+        sum = 0
+        for i in range(len(items)):
+            sum += int(items[i][1])
+        return sum
 
 
 def solveKnapsackFile(filename, method="bruteForce"):
