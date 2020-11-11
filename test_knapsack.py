@@ -3,10 +3,15 @@ import unittest
 
 class BackpackTest(unittest.TestCase):
 
-    def testMethodsOnFile(self, problems_filename="problems/problems_size10.txt", solutions_filename="problems/problems_size10_solutions.txt"):
-        with open(solutions_filename) as f:
-            expected_solution_string = next(f)
+    def testMethodsOnFile(self, problems_filename="problems_size10.txt", solutions_filename="problems_size10_solutions.txt"):
+        try:
+            f = open(solutions_filename)
+        except FileNotFoundError:
+            f = open('problems/' + solutions_filename)
+        
+        expected_solution_string = next(f)
         expected_solution = eval(expected_solution_string)
+        f.close()
 
         solver = Solver()
         solver.loadProblemFromFile(problems_filename)
@@ -17,7 +22,7 @@ class BackpackTest(unittest.TestCase):
 
 
 def main(run_unit_tests=True):
-    solution = solveKnapsackFile("problems/problems_size10.txt")
+    solution = solveKnapsackFile("problems_size10.txt")
     print(solution)
     if run_unit_tests:
         print("\n----------------------------------------------------------------------\nNow running unit tests.\n")

@@ -20,26 +20,31 @@ class Solver:
         # List of (max_weight, [items]) tuples. Each item is a tuple of (name, value, weight)
         self.problems = []
 
-        with open(filename) as f:
+        try:
+            f = open(filename)
+        except FileNotFoundError:
+            f = open('problems/' + filename)
 
-            # Skip the first line
-            next(f)
+        # Skip the first line
+        next(f)
 
-            # Read each subsequent line
-            for line in f:
-                line_values = line.split()
+        # Read each subsequent line
+        for line in f:
+            line_values = line.split()
 
-                # Check if the line is a problem name
-                if len(line_values) == 1:
-                    # Append a new (max_weight, [items]) tuple to the list of problems, with the list of items currently empty
-                    self.problems.append((int(next(f).strip()), []))
-                    continue
+            # Check if the line is a problem name
+            if len(line_values) == 1:
+                # Append a new (max_weight, [items]) tuple to the list of problems, with the list of items currently empty
+                self.problems.append((int(next(f).strip()), []))
+                continue
 
-                # Okay, it's a normal line with an item on it. Add it to the current list of items
-                line_values[1] = int(line_values[1])
-                line_values[2] = int(line_values[2])
-                line_values = tuple(line_values)
-                self.problems[-1][1].append(line_values)
+            # Okay, it's a normal line with an item on it. Add it to the current list of items
+            line_values[1] = int(line_values[1])
+            line_values[2] = int(line_values[2])
+            line_values = tuple(line_values)
+            self.problems[-1][1].append(line_values)
+        
+        f.close()
 
     def getSolutions(self, method):
 
