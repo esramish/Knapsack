@@ -207,13 +207,14 @@ class Solver:
         return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
     def __solveMiddle(self, problem_index):
-        #best_value = -1
-        #best_choice_complement = []
-        count = 0
+        #count = 0
         capacity = self.problems[problem_index][0]
         items = self.problems[problem_index][1]
-        #num_items = len(items)
+
+        #Partition the list of items into two approximately equal sized lists
         items_a, items_b = np.array_split(items, 2)
+
+        #Find the power set of each list
         subsets_a = self.findSubsets(items_a)
         subsets_b = self.findSubsets(items_b)
        
@@ -222,35 +223,41 @@ class Solver:
         # print(sort_b)
         best_set = []
         for sub_a in subsets_a:
+       
 
-           # print(sub_a)
             a_weight = self.sumWeights(sub_a)
             a_values = self.sumValues(sub_a)
             sub_best_values = -1
+            #Remember the highest value subset for each subset in subsets_a
             good_set = []
             for sub_b in subsets_b:
-                count += 1
+                #count += 1
 
-              #  print(sub_b)
                 b_weight = self.sumWeights(sub_b)
                 b_values = self.sumValues(sub_b)
+                
                 if a_values + b_values > sub_best_values and a_weight + b_weight <= capacity:
                     sub_best_values = a_values + b_values
                     good_set = np.concatenate((sub_a, sub_b))
                 # elif a_weight + b_weight > capacity:
                 #     break
+            #Update the best set
             if self.sumValues(good_set) > self.sumValues(best_set):
+               
                 best_set = np.copy(good_set)
-        print(count)
+       # print(count)
         return [best_set[i][0] for i in range(len(best_set))]
 
+    #Returns the list of subsets of a given list
     def findSubsets(self, items):
         sub_list = []
-        for i in range(0, len(items)):
+        #Iteration begins at 1 because we don't need the empty set
+        for i in range(1, len(items)+1):
             for item in combinations(items, i):
                 sub_list.append(item)
-        return np.array(sub_list)[1:]
+        return np.array(sub_list)
 
+    #Returns the sum of the weights of the given list of items
     def sumWeights(self, items):
         sum = 0
         for i in range(len(items)):
@@ -258,6 +265,7 @@ class Solver:
             sum += int(items[i][2])
         return sum
 
+    #Returns the sum of the values of the given list of items
     def sumValues(self, items):
         sum = 0
         for i in range(len(items)):
