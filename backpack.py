@@ -4,7 +4,8 @@ from itertools import combinations
 
 
 class Solver:
-
+    '''A class for storing and solving Knapsack Problem instances.'''
+    
     def __init__(self):
 
         # Constant dict that maps solving method parameter name to the corresponding function name
@@ -16,7 +17,8 @@ class Solver:
         }
 
     def loadProblemFromFile(self, filename):
-        
+        '''Load the problems represented in the specified text file into this Solver.'''
+
         # List of (max_weight, [items]) tuples. Each item is a tuple of (name, value, weight)
         self.problems = []
 
@@ -47,6 +49,7 @@ class Solver:
         f.close()
 
     def getSolutions(self, method):
+        '''Solve all of the problem instances loaded into this Solver, using the specified internal algorithm.'''
 
         # Confirm that method argument is valid
         if method not in self.SOLVER_METHODS:
@@ -60,7 +63,10 @@ class Solver:
         return solutions
 
     def __solveBruteForce(self, problem_index):
+        '''Solve using a brute force implementation. 
         
+        The general idea for this implementation comes from http://www.micsymposium.org/mics_2005/papers/paper102.pdf'''
+
         # Constants for this problem instance
         capacity = self.problems[problem_index][0]
         items = self.problems[problem_index][1]
@@ -101,7 +107,8 @@ class Solver:
         return [item[0] for item, bit in zip(items, best_choice) if bit]
     
     def __solveBacktrack(self, problem_index):
-        
+        '''Solve using an iterative backtracking implementation.'''
+
         # Constants for this problem instance
         capacity = self.problems[problem_index][0]
         items = self.problems[problem_index][1]
@@ -151,7 +158,8 @@ class Solver:
         return [items[i][0] for i in best_choice]
 
     def __solveBranchAndBound(self, problem_index):
-        
+        '''Solve using an iterative branch and bound implementation.'''
+
         # Constants for this problem instance
         capacity = self.problems[problem_index][0]
         items = self.problems[problem_index][1]
@@ -207,6 +215,10 @@ class Solver:
         return [items[i][0] for i in range(num_items) if i not in best_choice_complement]
 
     def __solveMiddle(self, problem_index):
+        '''Solve using a Meet in the Middle implementation. 
+
+        The general idea for this implementation comes from https://en.wikipedia.org/wiki/Knapsack_problem#Meet-in-the-middle'''
+
         #count = 0
         capacity = self.problems[problem_index][0]
         items = self.problems[problem_index][1]
@@ -240,11 +252,12 @@ class Solver:
             if self.sumValues(good_set) > self.sumValues(best_set):
                
                 best_set = np.copy(good_set)
-       # print(count)
+
         return [best_set[i][0] for i in range(len(best_set))]
 
-    #Returns the list of subsets of a given list
     def findSubsets(self, items):
+        '''Return the list of all non-empty subsets of a given list.'''
+
         sub_list = []
         #Iteration begins at 1 because we don't need the empty set
         for i in range(1, len(items)+1):
@@ -252,16 +265,16 @@ class Solver:
                 sub_list.append((subset, self.sumValues(subset), self.sumWeights(subset)))
         return np.array(sub_list)
 
-    #Returns the sum of the weights of the given list of items
     def sumWeights(self, items):
+        '''Return the sum of the weights of the given list of items.'''
         sum = 0
         for i in range(len(items)):
 
             sum += int(items[i][2])
         return sum
 
-    #Returns the sum of the values of the given list of items
     def sumValues(self, items):
+        '''Return the sum of the values of the given list of items.'''
         sum = 0
         for i in range(len(items)):
             sum += int(items[i][1])

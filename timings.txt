@@ -1,4 +1,0 @@
-problems_size15.txt (2018 MacBook Pro with 8GB memory)
-    Brute Force: 72.28s user 0.26s system 99% cpu 1:12.57 total
-    Backtracking: 2.28s user 0.10s system 115% cpu 2.057 total
-    Branch-and-Bound: 16.08s user 0.11s system 101% cpu 15.906 total
