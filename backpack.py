@@ -218,29 +218,24 @@ class Solver:
         subsets_a = self.findSubsets(items_a)
         subsets_b = self.findSubsets(items_b)
        
-        # sort_b = list(subsets_b).sort(key = lambda x: x[0][2])
-        # subsets_b = np.array(sort_b)
-        # print(sort_b)
+        #Sort b's subsets
+        subsets_b_python_list = list(subsets_b)
+        subsets_b_python_list.sort(key = lambda x: x[2])
+        subsets_b = np.array(subsets_b_python_list)
+        
         best_set = []
-        for sub_a in subsets_a:
+        for sub_a, a_values, a_weight in subsets_a:
        
-
-            a_weight = self.sumWeights(sub_a)
-            a_values = self.sumValues(sub_a)
             sub_best_values = -1
             #Remember the highest value subset for each subset in subsets_a
             good_set = []
-            for sub_b in subsets_b:
-                #count += 1
-
-                b_weight = self.sumWeights(sub_b)
-                b_values = self.sumValues(sub_b)
+            for sub_b, b_values, b_weight in subsets_b:
                 
                 if a_values + b_values > sub_best_values and a_weight + b_weight <= capacity:
                     sub_best_values = a_values + b_values
                     good_set = np.concatenate((sub_a, sub_b))
-                # elif a_weight + b_weight > capacity:
-                #     break
+                elif a_weight + b_weight > capacity:
+                    break
             #Update the best set
             if self.sumValues(good_set) > self.sumValues(best_set):
                
@@ -253,8 +248,8 @@ class Solver:
         sub_list = []
         #Iteration begins at 1 because we don't need the empty set
         for i in range(1, len(items)+1):
-            for item in combinations(items, i):
-                sub_list.append(item)
+            for subset in combinations(items, i):
+                sub_list.append((subset, self.sumValues(subset), self.sumWeights(subset)))
         return np.array(sub_list)
 
     #Returns the sum of the weights of the given list of items
@@ -272,7 +267,7 @@ class Solver:
             sum += int(items[i][1])
         return sum
 
-def solveKnapsackFile(filename, method="backtrack"):
+def solveKnapsackFile(filename, method="meetInMiddle"):
     '''A wrapper function for solving the problems in a file; load the file into a Solver instance and get the solutions using the specified method.'''
     solver = Solver()
     solver.loadProblemFromFile(filename)
