@@ -1,6 +1,7 @@
 import numpy as np
 from Stack import Stack
 from itertools import combinations
+import time
 
 
 class Solver:
@@ -48,7 +49,7 @@ class Solver:
         
         f.close()
 
-    def getSolutions(self, method):
+    def getSolutions(self, method, verbosity=0):
         '''Solve all of the problem instances loaded into this Solver, using the specified internal algorithm.'''
 
         # Confirm that method argument is valid
@@ -58,8 +59,12 @@ class Solver:
         # Delegate to the function that uses the specified solving method; return a list of solutions for the whole file
         solutions = []
         for i in range(len(self.problems)):
+            start = time.perf_counter()
             problem_instance_solution = self.SOLVER_METHODS[method](i)
+            end = time.perf_counter()
             solutions.append(sorted(problem_instance_solution))
+            if verbosity == 1:
+                print(f"Solved {i + 1}/{len(self.problems)} ({'%.3f' % (end - start)} sec)")
         return solutions
 
     def __solveBruteForce(self, problem_index):
@@ -280,8 +285,8 @@ class Solver:
             sum += int(items[i][1])
         return sum
 
-def solveKnapsackFile(filename, method="meetInMiddle"):
+def solveKnapsackFile(filename, method="meetInMiddle", verbosity=0):
     '''A wrapper function for solving the problems in a file; load the file into a Solver instance and get the solutions using the specified method.'''
     solver = Solver()
     solver.loadProblemFromFile(filename)
-    return solver.getSolutions(method)
+    return solver.getSolutions(method, verbosity)

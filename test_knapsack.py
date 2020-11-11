@@ -34,11 +34,17 @@ def produce_plots():
 
     for size in SIZES:
 
+        print(f"\n\nNow solving problems_size{size}.txt:")
+
         # Record how long the file for this size takes
         start = time.perf_counter()
-        solution = solveKnapsackFile(f"problems_size{size}.txt")
+        solution = solveKnapsackFile(f"problems_size{size}.txt", verbosity=1)
         end = time.perf_counter()
         timings[size] = end - start
+
+        print("Total time: %.3f sec" % (end - start))
+        print("Solutions:")
+        print(solution)
 
         # No need to plot just one datapoint
         if len(timings) == 1: 
@@ -62,11 +68,11 @@ def main(run_unit_tests=True, plot=False):
     print(solution)
 
     # Run tests and produce plots, if so desired
+    if plot:
+        produce_plots()
     if run_unit_tests:
         print("\n----------------------------------------------------------------------\nNow running unit tests on all knapsack implementations.\n")
         unittest.main()
-    if plot:
-        produce_plots()
 
 if __name__ == '__main__':
     main()
